@@ -1,6 +1,6 @@
 from flask import Flask,request, jsonify
-from flask_restful import Api,Resource 
-from flask_login import LoginManager,login_user, logout_user, current_user
+from flask_restful import Api,Resource,reqparse
+from flask_login import LoginManager,login_user, logout_user, current_user,login_required
 
 from models import db, User, Customer, Staff, Admin,Loan,LoanSettings,SavingsAccount
 from werkzeug.security import check_password_hash
@@ -303,9 +303,76 @@ class LoanRepayment(Resource):
         db.session.commit()
 
         return {'message': 'Loan repayment successful', 'remaining_loan_amount': loan.amount}, 200
+    
+class RepayLoanResource(Resource):
+    @login_required
+    def post(self):
+        if current_user.role != 'customer':
+            return jsonify({"error": "Only customers can make repayments"}), 403
+
+        # Initialize the argument parser
+        parser = reqparse.RequestParser()
+        parser.add_argument('loan_id', type=int, required=True, help='Loan ID is required')
+        parser.add_argument('amount', type=float, required=True, help='Amount is required')
+        parser.add_argument('payment_method', type=str, help='Payment method (optional)')
+        parser.add_argument('reference', type=str, help='Payment reference (optional)')
+        args = parser.parse_args()
+
+        loan_id = args['loan_id']
+        amount = args['amount']
+        method = args['payment_method']
+        reference = args['reference']
+
+        # Get the customer profile
+        customer = current_user.customer
+        if not customer:
+            return jsonify({"error": "User has no customer profile"}), 404
+
+        # Find the loan
+        loan = Loan.query.filter_by(id=loan_id).first()
+        if not loan:
+            return jsonify({"error": "Loan not found"}), 404
+
+        if loan.customer_id != customer.id:
+            return jsonify({"error": "You do not own this loan"}), 403
+
+        try:
+            repayment = loan.add_repayment(
+                customer=customer,
+                amount=amount,
+                method=method,
+                ref=reference
+            )
+            total_repaid = sum(r.amount for r in loan.repayments)
+
+            return jsonify({
+                "message": "Repayment successful",
+                "repayment_id": repayment.id,
+                "loan_status": loan.status,
+                "total_repaid": total_repaid
+            }), 200
+
+        except Exception as e:
+            return jsonify({"error": str(e)}), 400
 
 
+class LoanRepaymentsResource(Resource):
+    def get(self, loan_id):
+        loan = Loan.query.filter_by(id=loan_id).first()
+        if not loan:
+            return jsonify({"error": "Loan not found"}), 404
 
+        repayments = [{
+            "amount": r.amount,
+            "payment_date": r.payment_date,
+            "method": r.payment_method,
+            "reference": r.reference
+        } for r in loan.repayments]
+
+        return jsonify({
+            "loan_id": loan.id,
+            "repayments": repayments
+        })
 
 # Add resources to API
 api.add_resource(Register, '/api/register')
@@ -317,8 +384,10 @@ api.add_resource(LoanStatus, '/api/loan/<int:loan_id>')  # View loan status
 api.add_resource(LoanManagement, '/api/loan/<int:loan_id>/manage')  # Staff/Admin loan approval
 api.add_resource(UserManagement, '/api/user/<int:user_id>')
 api.add_resource(LoanSettingsResource, '/api/admin/loan-settings')
-api.add_resource(Savings, '/api/savings')  # GET balance, POST deposit/withdraw
-api.add_resource(LoanRepayment, '/api/loan/<int:loan_id>/repay')  # POST
+api.add_resource(RepayLoanResource, '/repay-loan')
+api.add_resource(LoanRepaymentsResource, '/loan/<int:loan_id>/repayments')
+
+
 
 
 if __name__ == '__main__':
