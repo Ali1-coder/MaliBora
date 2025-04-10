@@ -1,0 +1,134 @@
+/* Base Styles */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f5f5f5;
+  }
+  
+  .auth-container {
+    max-width: 400px;
+    margin: 50px auto;
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  .form-group {
+    margin-bottom: 15px;
+  }
+  
+  .form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+  }
+  
+  .form-group input,
+  .form-group select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-sizing: border-box;
+  }
+  
+  button {
+    background: #007bff;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+  }
+  
+  button:hover {
+    background: #0056b3;
+  }
+  
+  .error {
+    color: #dc3545;
+    margin-bottom: 15px;
+    padding: 10px;
+    background: #f8d7da;
+    border-radius: 4px;
+  }
+  
+  /* Navbar */
+  .navbar {
+    display: flex;
+    justify-content: space-between;
+    padding: 15px 20px;
+    background: #343a40;
+    color: white;
+  }
+  
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+  }
+  
+  .role-badge {
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+  }
+  
+  .role-badge.admin {
+    background: #dc3545;
+  }
+  
+  .role-badge.staff {
+    background: #fd7e14;
+  }
+  
+  .role-badge.customer {
+    background: #28a745;
+  }
+  
+  .username {
+    font-weight: 500;
+  }
+  
+  /* Dashboard */
+  .dashboard-content {
+    padding: 20px;
+  }
+
+  /* Add to index.css or create a separate CSS module */
+.unauthorized-container {
+    text-align: center;
+    padding: 2rem;
+    max-width: 600px;
+    margin: 50px auto;
+  }
+  
+  .unauthorized-container h1 {
+    color: #dc3545;
+    font-size: 2.5rem;
+  }
+  
+  .unauthorized-container p {
+    font-size: 1.2rem;
+    margin: 1rem 0;
+  }
+  
+  .go-back-btn,
+  .dashboard-btn {
+    background: #007bff;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    margin: 10px;
+    cursor: pointer;
+  }
+  
+  .go-back-btn:hover,
+  .dashboard-btn:hover {
+    background: #0056b3;
+  }
