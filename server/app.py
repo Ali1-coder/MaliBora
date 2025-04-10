@@ -4,11 +4,12 @@ from flask_login import LoginManager, login_user, logout_user, current_user, log
 from models import db, User, Customer, Staff, Admin, Loan, LoanSettings, SavingsAccount, Transaction
 from werkzeug.security import check_password_hash
 from sqlalchemy.orm.exc import NoResultFound
-from dashboard import DashboardResource
 from flask_migrate import Migrate
 from functools import wraps
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app, resources={r"/api/*": {"origins": "http://localhost:5173"}}, supports_credentials=True)
 api = Api(app)
 app.config['SECRET_KEY'] = 'a9b7f8cbe34d4fd28b239872c88f199e'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
@@ -112,6 +113,33 @@ class Login(Resource):
             return {'message': f'Logged in as {user.username}'}, 200
         return {'error': 'Invalid credentials'}, 401
 
+class DashboardResource(Resource):
+    @login_required
+    def get(self):
+        if current_user.role == 'customer':
+            profile = current_user.customer_profile
+            return jsonify({
+                'message': f'Welcome {current_user.username}!',
+                'account_number': profile.account_number,
+                'address': profile.address,
+                'national_id': profile.national_id
+            })
+        elif current_user.role == 'staff':
+            profile = current_user.staff_profile
+            return jsonify({
+                'message': f'Welcome {current_user.username}!',
+                'employee_id': profile.employee_id,
+                'department': profile.department
+            })
+        elif current_user.role == 'admin':
+            profile = current_user.admin_profile
+            return jsonify({
+                'message': f'Welcome {current_user.username}!',
+                'access_level': profile.access_level,
+                'is_superuser': profile.is_superuser
+            })
+        else:
+            return jsonify({'error': 'Unauthorized'}), 403
 
 class Logout(Resource):
     def get(self):

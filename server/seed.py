@@ -1,69 +1,85 @@
-from app import app
-from models import db, User, Loan, Customer, Staff, Admin
+from app import app, db
+from models import User, Customer, Staff, Admin, SavingsAccount, LoanSettings, Loan, Transaction
 from werkzeug.security import generate_password_hash
 
-# Creating some sample users and loan data
-def seed_data():
+def seed():
     with app.app_context():
-        # Clear existing data
         db.drop_all()
         db.create_all()
 
-        # Create Admin User
-        admin = User(username="adminuser", email="admin@example.com", role="admin")
-        admin.set_password("admin1234")
-        db.session.add(admin)
+        # --- Create Users ---
+        admin_user = User(
+            username='admin',
+            email='admin@example.com',
+            role='admin',
+            password_hash=generate_password_hash('adminpass')
+        )
+
+        staff_user = User(
+            username='staff',
+            email='staff@example.com',
+            role='staff',
+            password_hash=generate_password_hash('staffpass')
+        )
+
+        customer_user = User(
+            username='customer',
+            email='customer@example.com',
+            role='customer',
+            password_hash=generate_password_hash('customerpass')
+        )
+
+        db.session.add_all([admin_user, staff_user, customer_user])
         db.session.commit()
 
-        # Create Admin Profile
-        admin_profile = Admin(user=admin, access_level="full", is_superuser=True)
-        db.session.add(admin_profile)
+        # --- Role Profiles ---
+        admin_profile = Admin(user=admin_user)
+        staff_profile = Staff(user=staff_user)
+        customer_profile = Customer(user=customer_user)
+
+        db.session.add_all([admin_profile, staff_profile, customer_profile])
         db.session.commit()
 
-        # Create Staff User
-        staff = User(username="staffuser", email="staff@example.com", role="staff")
-        staff.set_password("staff1234")
-        db.session.add(staff)
+        # --- Savings Account ---
+        savings_account = SavingsAccount(customer=customer_profile, balance=1000.0)
+        db.session.add(savings_account)
         db.session.commit()
 
-        # Create Staff Profile
-        staff_profile = Staff(user=staff, employee_id="S001", department="Loans")
-        db.session.add(staff_profile)
+        # --- Deposit and Withdrawal Transactions ---
+        deposit = Transaction(
+            amount=300.0,
+            transaction_type='deposit',
+            status='approved',
+            customer=customer_profile,
+            reference='Seed Deposit'
+        )
+        withdrawal = Transaction(
+            amount=100.0,
+            transaction_type='withdrawal',
+            status='approved',
+            customer=customer_profile,
+            reference='Seed Withdrawal'
+        )
+        db.session.add_all([deposit, withdrawal])
         db.session.commit()
 
-        # Create Customer Users with Loans
-        customer_1 = User(username="customer1", email="customer1@example.com", role="customer")
-        customer_1.set_password("customer1234")
-        db.session.add(customer_1)
+        # --- Loan Settings ---
+        loan_settings = LoanSettings(default_interest_rate=5.0)
+        db.session.add(loan_settings)
         db.session.commit()
 
-        # Create Customer Profile for Customer 1
-        customer_profile_1 = Customer(user=customer_1, account_number="C001", address="123 Main St", national_id="1234567890")
-        db.session.add(customer_profile_1)
+        # --- Loan for Customer ---
+        loan = Loan(
+            amount=500.0,
+            interest_rate=loan_settings.default_interest_rate,
+            loan_duration=6,
+            status='approved',
+            customer_id=customer_profile.id
+        )
+        db.session.add(loan)
         db.session.commit()
 
-        # Create Loans for Customer 1
-        loan_1 = Loan(amount=5000, interest_rate=5.5, loan_duration=12, customer_id=customer_1.id)
-        db.session.add(loan_1)
+        print("🌱 Database seeded successfully!")
 
-        customer_2 = User(username="customer2", email="customer2@example.com", role="customer")
-        customer_2.set_password("customer1234")
-        db.session.add(customer_2)
-        db.session.commit()
-
-        # Create Customer Profile for Customer 2
-        customer_profile_2 = Customer(user=customer_2, account_number="C002", address="456 Elm St", national_id="9876543210")
-        db.session.add(customer_profile_2)
-        db.session.commit()
-
-        # Create Loans for Customer 2
-        loan_2 = Loan(amount=10000, interest_rate=6.0, loan_duration=24, customer_id=customer_2.id)
-        db.session.add(loan_2)
-
-        # Commit all data to the database
-        db.session.commit()
-
-        print("Database seeded successfully.")
-
-if __name__ == "__main__":
-    seed_data()
+if __name__ == '__main__':
+    seed()
