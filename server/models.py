@@ -60,6 +60,44 @@ class SavingsAccount(db.Model):
 
     customer = db.relationship('Customer', back_populates='savings_account')
 
+    def deposit(self, amount, reference=None):
+        if amount <= 0:
+            raise ValueError("Deposit amount must be positive.")
+        
+        # Create a new deposit transaction
+        transaction = Transaction(
+            amount=amount,
+            transaction_type='deposit',
+            customer=self.customer,
+            reference=reference
+        )
+        
+        self.balance += amount
+        db.session.add(transaction)
+        db.session.commit()
+        return transaction
+
+    def withdraw(self, amount, reference=None):
+        if amount <= 0:
+            raise ValueError("Withdrawal amount must be positive.")
+        
+        if self.balance < amount:
+            raise ValueError("Insufficient funds.")
+        
+        # Create a new withdrawal transaction
+        transaction = Transaction(
+            amount=amount,
+            transaction_type='withdrawal',
+            customer=self.customer,
+            reference=reference
+        )
+        
+        self.balance -= amount
+        db.session.add(transaction)
+        db.session.commit()
+        return transaction
+
+
 # Loans
 
 class Loan(db.Model):
@@ -126,3 +164,26 @@ class Repayment(db.Model):
     # Optional: transaction reference or method (bank, transfer, etc.)
     payment_method = db.Column(db.String(50))
     reference = db.Column(db.String(100))
+
+class Transaction(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    amount = db.Column(db.Float, nullable=False)
+    transaction_type = db.Column(db.String(50), nullable=False)  # 'deposit' or 'withdrawal'
+    status = db.Column(db.String(20), default='pending')  # 'pending', 'approved', 'rejected'
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Foreign key linking the transaction to a customer
+    customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'))
+    customer = db.relationship('Customer', backref=db.backref('transactions', lazy=True))
+    
+    # Optional reference for the transaction (e.g., payment reference, withdrawal ID, etc.)
+    reference = db.Column(db.String(100))
+
+    def approve(self):
+        self.status = 'approved'
+    
+    def reject(self):
+        self.status = 'rejected'
+
+    def __repr__(self):
+        return f'<Transaction {self.id}, {self.transaction_type}, {self.amount}, {self.status}>'
