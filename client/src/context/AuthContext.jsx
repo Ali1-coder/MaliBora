@@ -1,45 +1,42 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { loginUser, logoutUser, checkAuth } from '../services/auth';
+import axios from 'axios';
 
 const AuthContext = createContext();
 
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+export function AuthProvider({ children }) {
+  const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
 
   useEffect(() => {
-    const verifyAuth = async () => {
-      try {
-        const userData = await checkAuth();
-        setUser(userData);
-      } catch (error) {
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-    verifyAuth();
+    checkAuthStatus();
   }, []);
 
+  const checkAuthStatus = async () => {
+    try {
+      const response = await axios.get('/api/dashboard', { withCredentials: true ,headers: { 'Cache-Control': 'no-cache' }});
+      setCurrentUser(response.data);
+    } catch (error) {
+      setCurrentUser(null);
+    }
+    setLoading(false);
+  };
+
   const login = async (email, password) => {
-    const userData = await loginUser(email, password);
-    setUser(userData);
-    navigate(userData.role === 'admin' ? '/admin' : '/dashboard');
+    const response = await axios.post('/api/login', { email, password }, { withCredentials: true });
+    await checkAuthStatus();
+    return response;
   };
 
   const logout = async () => {
-    await logoutUser();
-    setUser(null);
-    navigate('/login');
+    await axios.get('/api/logout', { withCredentials: true });
+    setCurrentUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
-      {children}
+    <AuthContext.Provider value={{ currentUser, loading, login, logout }}>
+      {!loading && children}
     </AuthContext.Provider>
   );
-};
+}
 
 export const useAuth = () => useContext(AuthContext);
